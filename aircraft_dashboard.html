@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aircraft Production Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .dashboard-header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .dashboard-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        
+        .dashboard-header p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .export-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .export-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 0 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(40,167,69,0.3);
+        }
+        
+        .export-btn.csv {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+        }
+        
+        .export-btn.csv:hover {
+            box-shadow: 0 4px 15px rgba(23,162,184,0.3);
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid;
+        }
+        
+        .card-operational { border-left-color: #28a745; }
+        .card-maintenance { border-left-color: #ffc107; }
+        .card-grounded { border-left-color: #dc3545; }
+        .card-inspection { border-left-color: #17a2b8; }
+        .card-total { border-left-color: #6c757d; }
+        
+        .card-number {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .card-label {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .main-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 1200px;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #343a40, #495057);
+            color: white;
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 11px;
+        }
+        
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-operational {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-maintenance {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-grounded {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-inspection {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .operation-badge {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .notes-cell {
+            max-width: 200px;
+            font-size: 11px;
+        }
+        
+        .note-section {
+            margin-bottom: 8px;
+            padding: 4px;
+            background-color: #f8f9fa;
+            border-radius: 3px;
+        }
+        
+        .note-label {
+            font-weight: bold;
+            color: #495057;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        
+        .note-text {
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .aircraft-id {
+            font-weight: bold;
+            color: #2a5298;
+        }
+        
+        .model-input {
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 500;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 4px;
+            width: 120px;
+        }
+        
+        .model-input:hover {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        
+        .model-input:focus {
+            outline: none;
+            background-color: white;
+            border: 2px solid #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .operation-column {
+            text-align: center;
+        }
+        
+        .last-updated {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .priority-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .priority-critical {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .priority-high {
+            background-color: #fd7e14;
+            color: white;
+        }
+        
+        .priority-medium {
+            background-color: #ffc107;
+            color: #000;
+        }
+        
+        .priority-low {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .summary-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .dashboard-header h1 {
+                font-size: 24px;
+            }
+            
+            .export-btn {
+                margin: 5px;
+                padding: 10px 20px;
+            }
+            
+            table {
+                font-size: 11px;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+            }
+        }
+    </style>
+    <script>
+        function exportToCSV() {
+            const table = document.querySelector('table');
+            const rows = table.querySelectorAll('tr');
+            let csvContent = '';
+            
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('th, td');
+                const rowData = [];
+                
+                cols.forEach(col => {
+                    let cellText = col.textContent.trim();
+                    // Clean up text and remove extra whitespace
+                    cellText = cellText.replace(/\s+/g, ' ');
+                    // Escape quotes and wrap in quotes if contains comma
+                    if (cellText.includes(',') || cellText.includes('"')) {
+                        cellText = '"' + cellText.replace(/"/g, '""') + '"';
+                    }
+                    rowData.push(cellText);
+                });
+                
+                csvContent += rowData.join(',') + '\n';
+            });
+            
+            // Create and download CSV file
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'aircraft_production_dashboard_' + new Date().toISOString().split('T')[0] + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function copyTableData() {
+            const table = document.querySelector('table');
+            const rows = table.querySelectorAll('tr');
+            let tableText = '';
+            
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('th, td');
+                const rowData = [];
+                
+                cols.forEach(col => {
+                    let cellText = col.textContent.trim();
+                    cellText = cellText.replace(/\s+/g, ' ');
+                    rowData.push(cellText);
+                });
+                
+                tableText += rowData.join('\t') + '\n';
+            });
+            
+            navigator.clipboard.writeText(tableText).then(() => {
+                alert('✅ Table data copied to clipboard! You can now paste it into Excel or Google Sheets.');
+            }).catch(() => {
+                alert('❌ Copy failed. Please try the CSV export instead.');
+            });
+        }
+        
+        function updateSummaryCards() {
+            const statusCells = document.querySelectorAll('tbody tr td:nth-child(3)');
+            const counts = {
+                'Production Ready': 0,
+                'In Progress': 0,
+                'On Hold': 0,
+                'Quality Check': 0
+            };
+            
+            statusCells.forEach(cell => {
+                const status = cell.textContent.trim();
+                if (counts.hasOwnProperty(status)) {
+                    counts[status]++;
+                }
+            });
+            
+            document.getElementById('prod-ready-count').textContent = counts['Production Ready'];
+            document.getElementById('in-progress-count').textContent = counts['In Progress'];
+            document.getElementById('on-hold-count').textContent = counts['On Hold'];
+            document.getElementById('quality-check-count').textContent = counts['Quality Check'];
+            document.getElementById('total-count').textContent = statusCells.length;
+        }
+        
+        // Auto-update summary cards when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSummaryCards();
+            
+            // Update timestamp
+            const now = new Date();
+            const timestamp = now.toLocaleDateString() + ' at ' + now.toLocaleTimeString();
+            document.getElementById('last-updated').textContent = 'Dashboard Last Updated: ' + timestamp;
+        });
+    </script>
+</head>
+<body>
+    <div class="dashboard-header">
+        <h1>Aircraft Production Dashboard</h1>
+        <p>Real-time production monitoring and build status overview</p>
+    </div>
+    
+    <div class="export-section">
+        <h3 style="margin-bottom: 15px; color: #495057;">Export Dashboard Data</h3>
+        <button class="export-btn csv" onclick="exportToCSV()">📊 Download CSV</button>
+        <button class="export-btn" onclick="copyTableData()">📋 Copy for Excel/Sheets</button>
+        <p style="margin-top: 10px; font-size: 12px; color: #666;">
+            CSV: Direct download • Copy: Paste into Excel/Google Sheets
+        </p>
+    </div>
+    
+    <div class="summary-cards">
+        <div class="summary-card card-operational">
+            <div class="card-number" style="color: #28a745;" id="prod-ready-count">6</div>
+            <div class="card-label">Production Ready</div>
+        </div>
+        <div class="summary-card card-maintenance">
+            <div class="card-number" style="color: #ffc107;" id="in-progress-count">4</div>
+            <div class="card-label">In Progress</div>
+        </div>
+        <div class="summary-card card-grounded">
+            <div class="card-number" style="color: #dc3545;" id="on-hold-count">3</div>
+            <div class="card-label">On Hold</div>
+        </div>
+        <div class="summary-card card-inspection">
+            <div class="card-number" style="color: #17a2b8;" id="quality-check-count">2</div>
+            <div class="card-label">Quality Check</div>
+        </div>
+        <div class="summary-card card-total">
+            <div class="card-number" style="color: #6c757d;" id="total-count">15</div>
+            <div class="card-label">Total Units</div>
+        </div>
+    </div>
+    
+    <div class="main-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Aircraft ID</th>
+                    <th>Model</th>
+                    <th>Status</th>
+                    <th>Operation 10</th>
+                    <th>Operation 20</th>
+                    <th>Operation 30</th>
+                    <th>Operation 40</th>
+                    <th>Operation 50</th>
+                    <th>Progress</th>
+                    <th>Priority</th>
+                    <th>Pre-Flight Notes</th>
+                    <th>Pre-Cert Notes</th>
+                    <th>Last Updated</th>
+                    <th>Delivery Date</th>
+                    <th>Team</th>
+                    <th>Quality Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="aircraft-id">AC-001</td>
+                    <td><input type="text" class="model-input" value="PA-28-181 DX" /></td>
+                    <td><span class="status-badge status-operational">Production Ready</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-high">High</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Final assembly complete. Systems integration verified</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Production certificate approved. Ready for delivery</div>
+                        </div>
+                    </td>
+                    <td>06/27/2025 08:30</td>
+                    <td>07/01/2025</td>
+                    <td>Team Alpha</td>
+                    <td>98</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-002</td>
+                    <td><input type="text" class="model-input" value="PA-44-180" /></td>
+                    <td><span class="status-badge status-maintenance">In Progress</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #ffc107; color: #000;">⚠</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 40%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-medium">Medium</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Engine mount installation in progress</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Awaiting propeller installation and rigging</div>
+                        </div>
+                    </td>
+                    <td>06/26/2025 14:45</td>
+                    <td>07/08/2025</td>
+                    <td>Team Beta</td>
+                    <td>85</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-003</td>
+                    <td><input type="text" class="model-input" value="PA-46-350P" /></td>
+                    <td><span class="status-badge status-operational">Production Ready</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-high">High</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Pressurization system tested. All avionics operational</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Type certificate validation complete</div>
+                        </div>
+                    </td>
+                    <td>06/27/2025 06:15</td>
+                    <td>06/30/2025</td>
+                    <td>Team Gamma</td>
+                    <td>96</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-004</td>
+                    <td><input type="text" class="model-input" value="PA-28-181" /></td>
+                    <td><span class="status-badge status-inspection">Quality Check</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #17a2b8; color: white;">◐</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 20%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-low">Low</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Wing assembly quality control in progress</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Structural inspection underway. ETA: 2 days</div>
+                        </div>
+                    </td>
+                    <td>06/25/2025 10:20</td>
+                    <td>07/15/2025</td>
+                    <td>Team Alpha</td>
+                    <td>78</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-005</td>
+                    <td><input type="text" class="model-input" value="PA-44-180" /></td>
+                    <td><span class="status-badge status-grounded">On Hold</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #dc3545; color: white;">✗</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-critical">Critical</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">HOLD - Awaiting revised wiring harness specs</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Engineering change order pending. Est: 5 days</div>
+                        </div>
+                    </td>
+                    <td>06/24/2025 16:30</td>
+                    <td>07/20/2025</td>
+                    <td>Team Beta</td>
+                    <td>65</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-006</td>
+                    <td><input type="text" class="model-input" value="PA-28-181" /></td>
+                    <td><span class="status-badge status-operational">Production Ready</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-medium">Medium</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Final quality inspection passed</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Airworthiness certificate issued</div>
+                        </div>
+                    </td>
+                    <td>06/27/2025 10:15</td>
+                    <td>07/02/2025</td>
+                    <td>Team Delta</td>
+                    <td>94</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-007</td>
+                    <td><input type="text" class="model-input" value="PA-46-350P" /></td>
+                    <td><span class="status-badge status-maintenance">In Progress</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #ffc107; color: #000;">⚠</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 60%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-high">High</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Avionics installation 75% complete</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Waiting for GPS unit calibration</div>
+                        </div>
+                    </td>
+                    <td>06/26/2025 16:00</td>
+                    <td>07/05/2025</td>
+                    <td>Team Gamma</td>
+                    <td>88</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-008</td>
+                    <td><input type="text" class="model-input" value="PA-28-181 DX" /></td>
+                    <td><span class="status-badge status-inspection">Quality Check</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #17a2b8; color: white;">◐</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 80%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-medium">Medium</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Paint booth finishing in progress</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Final inspection scheduled for tomorrow</div>
+                        </div>
+                    </td>
+                    <td>06/27/2025 07:45</td>
+                    <td>07/03/2025</td>
+                    <td>Team Alpha</td>
+                    <td>91</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-009</td>
+                    <td><input type="text" class="model-input" value="PA-44-180" /></td>
+                    <td><span class="status-badge status-operational">Production Ready</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-high">High</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Twin engine run-up completed successfully</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Multi-engine certificate validated</div>
+                        </div>
+                    </td>
+                    <td>06/27/2025 09:00</td>
+                    <td>06/29/2025</td>
+                    <td>Team Beta</td>
+                    <td>97</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-010</td>
+                    <td><input type="text" class="model-input" value="PA-28-181" /></td>
+                    <td><span class="status-badge status-grounded">On Hold</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #ffc107; color: #000;">⚠</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 20%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-medium">Medium</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">HOLD - Landing gear hydraulic issue detected</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Hydraulic system replacement required</div>
+                        </div>
+                    </td>
+                    <td>06/25/2025 13:30</td>
+                    <td>07/12/2025</td>
+                    <td>Team Delta</td>
+                    <td>72</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-011</td>
+                    <td><input type="text" class="model-input" value="PA-46-350P" /></td>
+                    <td><span class="status-badge status-maintenance">In Progress</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #ffc107; color: #000;">⚠</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 80%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-high">High</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Engine installation complete. Avionics integration 90% done</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Awaiting final avionics certification</div>
+                        </div>
+                    </td>
+                    <td>06/26/2025 11:20</td>
+                    <td>07/06/2025</td>
+                    <td>Team Gamma</td>
+                    <td>89</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-012</td>
+                    <td><input type="text" class="model-input" value="PA-28-181 DX" /></td>
+                    <td><span class="status-badge status-operational">Production Ready</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-medium">Medium</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">All manufacturing stages complete. Quality control passed</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Production certificate validated. Ready for pickup</div>
+                        </div>
+                    </td>
+                    <td>06/27/2025 12:00</td>
+                    <td>07/04/2025</td>
+                    <td>Team Alpha</td>
+                    <td>95</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-013</td>
+                    <td><input type="text" class="model-input" value="PA-44-180" /></td>
+                    <td><span class="status-badge status-maintenance">In Progress</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #17a2b8; color: white;">◐</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 60%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-low">Low</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Structural assembly complete. Electrical systems under review</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Electrical inspection in progress. Expected completion in 3 days</div>
+                        </div>
+                    </td>
+                    <td>06/26/2025 09:15</td>
+                    <td>07/18/2025</td>
+                    <td>Team Beta</td>
+                    <td>83</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-014</td>
+                    <td><input type="text" class="model-input" value="PA-28-181" /></td>
+                    <td><span class="status-badge status-maintenance">In Progress</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #ffc107; color: #000;">⚠</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 40%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-medium">Medium</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">Fuselage assembly 80% complete. Wing attachment scheduled</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Wing integration planning complete. Tooling prepared</div>
+                        </div>
+                    </td>
+                    <td>06/25/2025 15:45</td>
+                    <td>07/14/2025</td>
+                    <td>Team Delta</td>
+                    <td>81</td>
+                </tr>
+                <tr>
+                    <td class="aircraft-id">AC-015</td>
+                    <td><input type="text" class="model-input" value="PA-46-350P" /></td>
+                    <td><span class="status-badge status-grounded">On Hold</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #28a745; color: white;">✓</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td class="operation-column"><span class="operation-badge" style="background-color: #e9ecef; color: #666;">-</span></td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 40%;"></div>
+                        </div>
+                    </td>
+                    <td><span class="priority-badge priority-critical">Critical</span></td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Flight</div>
+                            <div class="note-text">HOLD - Turbine engine delivery delayed by supplier</div>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <div class="note-section">
+                            <div class="note-label">Pre-Cert</div>
+                            <div class="note-text">Engine supplier issue. Estimated 10-day delay</div>
+                        </div>
+                    </td>
+                    <td>06/24/2025 14:00</td>
+                    <td>07/25/2025</td>
+                    <td>Team Gamma</td>
+                    <td>70</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="last-updated">
+        <strong id="last-updated">Dashboard Last Updated: Friday, June 27, 2025 at 09:15 AM</strong>
+        <br>
+        <em>Production line updates every 30 minutes during manufacturing hours</em>
+    </div>
+</body>
+</html>
